@@ -1,0 +1,27 @@
+# Lean settings for a laptop-sized kind cluster.
+prometheus:
+  prometheusSpec:
+    enableFeatures: [exemplar-storage]
+    scrapeInterval: 5s
+    evaluationInterval: 5s
+    retention: 2d
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    resources: { requests: { cpu: 100m, memory: 400Mi } }
+alertmanager:
+  alertmanagerSpec:
+    resources: { requests: { cpu: 10m, memory: 32Mi } }
+grafana:
+  adminPassword: admin
+  service: { type: NodePort, nodePort: 30300 }
+  sidecar:
+    dashboards: { enabled: true, label: grafana_dashboard, searchNamespace: ALL }
+    datasources:
+      uid: prom
+      exemplarTraceIdDestinations: { datasourceUid: jaeger, traceIdLabelName: trace_id }
+  additionalDataSources:
+    - { name: Jaeger, uid: jaeger, type: jaeger, url: "http://jaeger.observability:16686" }
+kubeEtcd: { enabled: false }
+kubeControllerManager: { enabled: false }
+kubeScheduler: { enabled: false }
+kubeProxy: { enabled: false }

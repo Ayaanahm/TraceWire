@@ -1,0 +1,59 @@
+# Local stack: 3 services + OTel Collector + Jaeger + Prometheus + Grafana.
+#   docker compose up --build    then open http://localhost:3000 (Grafana)
+x-svc: &svc
+  restart: unless-stopped
+  environment: &env
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+    SHUTDOWN_DRAIN_DELAY: 0s
+    LATENCY_BUCKETS: ${LATENCY_BUCKETS:-tuned}
+
+services:
+  gateway:
+    <<: *svc
+    build: { context: ., args: { SERVICE: gateway } }
+    image: tracewire-gateway:latest
+    environment: { <<: *env, ORDERS_URL: "http://orders:8081", INVENTORY_FAULTS_URL: "http://inventory:8082/admin/faults", CONSOLE_CONTROLS: "true", CONSOLE_JAEGER_URL: "http://localhost:16686" }
+    ports: ["8080:8080"]
+  orders:
+    <<: *svc
+    build: { context: ., args: { SERVICE: orders } }
+    image: tracewire-orders:latest
+    environment: { <<: *env, INVENTORY_URL: "http://inventory:8082", FAULT_BASE_LATENCY_MS: "8" }
+    ports: ["8081:8081"]
+  inventory:
+    <<: *svc
+    build: { context: ., args: { SERVICE: inventory } }
+    image: tracewire-inventory:latest
+    environment:
+      <<: *env
+      FAULT_BASE_LATENCY_MS: "20"
+      FAULT_SLOW_RATE: "${FAULT_SLOW_RATE:-0.02}"
+      FAULT_SLOW_LATENCY_MS: "${FAULT_SLOW_LATENCY_MS:-150}"
+    ports: ["8082:8082"]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.114.0
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes: ["./deploy/otel/collector.yaml:/etc/otel/config.yaml:ro"]
+  jaeger:
+    image: jaegertracing/all-in-one:1.63.0
+    environment: { COLLECTOR_OTLP_ENABLED: "true" }
+    ports: ["16686:16686"]
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --enable-feature=exemplar-storage
+      - --web.enable-lifecycle
+    volumes: ["./deploy/prometheus:/etc/prometheus:ro"]
+    ports: ["9090:9090"]
+  grafana:
+    image: grafana/grafana:11.3.1
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]

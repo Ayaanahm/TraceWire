@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%}
+body{background:linear-gradient(#CDD6DE 1px,transparent 1px) 0 0/24px 24px,linear-gradient(90deg,#CDD6DE 1px,transparent 1px) 0 0/24px 24px,#E6EBEF;color:#14263A;font-family:Barlow,sans-serif;display:grid;place-items:center}
+.c{width:1240px}
+h1{font:600 112px/1 "Barlow Condensed";margin:0 0 28px;letter-spacing:-.01em}
+p{font-size:34px;line-height:1.35;margin:0;color:#3E5266;max-width:30ch}
+.path{display:flex;align-items:center;gap:0;margin:56px 0 0}
+.box{border:3px solid #14263A;border-radius:8px;padding:18px 26px;font:600 40px "Barlow Condensed";background:#F4F6F8;min-width:200px}
+.box.q{border-color:#D99A00;border-style:dashed}
+.w{height:4px;width:90px;background:#7D8FA1}
+ul{list-style:none;padding:0;margin:40px 0 0;display:grid;gap:18px;font-size:32px}
+li{display:grid;grid-template-columns:36px 1fr;align-items:baseline}
+li b{font:600 32px "Barlow Condensed";color:#2F6E4F}
+.big{font:600 150px/1 "Barlow Condensed";margin:40px 0 6px}
+.big s{color:#C2352B;text-decoration-thickness:6px}
+.big span{color:#2F6E4F}
+.url{font:600 52px "Barlow Condensed";margin-top:36px}
+</style></head><body><div class="c" id="c"></div>
+<script>
+const k = new URLSearchParams(location.search).get('k'), c = document.getElementById('c');
+if (k === 'hook') c.innerHTML = `<h1>An order takes 400 ms.<br>Which service is slow?</h1>
+  <div class="path"><div class="box">gateway</div><div class="w"></div><div class="box">orders</div><div class="w"></div><div class="box q">inventory?</div></div>`;
+if (k === 'proof') c.innerHTML = `<h1>Every push runs the pipeline</h1>
+  <ul><li><b>✓</b>Go tests with the race detector, including an end-to-end trace check</li>
+  <li><b>✓</b>Terraform, Kubernetes and Prometheus rules validated</li>
+  <li><b>✓</b>Trivy scan blocks any fixable high or critical vulnerability</li>
+  <li><b>✓</b>Versioned images pushed to GitHub Container Registry</li></ul>
+  <div class="big"><s>39</s> <span>0</span></div><p>high and critical vulnerabilities, after the scanner blocked my first release</p>`;
+if (k === 'end') c.innerHTML = `<h1>tracewire</h1>
+  <p>Go microservices with OpenTelemetry, Prometheus, Grafana, Kubernetes, Terraform and a Trivy-gated CI/CD pipeline.</p>
+  <div class="url">github.com/Ayaanahm/tracewire</div>
+  <p style="margin-top:28px">Open to Summer 2027 backend and platform internships.</p>`;
+</script></body></html>

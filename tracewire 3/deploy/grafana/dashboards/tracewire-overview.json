@@ -1,0 +1,645 @@
+{
+  "uid": "tracewire-overview",
+  "title": "tracewire / Service Overview",
+  "tags": [
+    "tracewire",
+    "slo"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Gateway p99 (SLO 250ms)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.25
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_request_duration_seconds_bucket{service=\"gateway\"}[1m])))",
+          "refId": "A"
+        }
+      ],
+      "id": 1
+    },
+    {
+      "type": "stat",
+      "title": "Gateway p95",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.2
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{service=\"gateway\"}[1m])))",
+          "refId": "A"
+        }
+      ],
+      "id": 2
+    },
+    {
+      "type": "stat",
+      "title": "Gateway error rate",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.005
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "sum(rate(http_server_request_duration_seconds_count{service=\"gateway\",code=~\"5..\"}[1m])) / sum(rate(http_server_request_duration_seconds_count{service=\"gateway\"}[1m]))",
+          "refId": "A"
+        }
+      ],
+      "id": 3
+    },
+    {
+      "type": "stat",
+      "title": "Gateway throughput",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1000000000.0
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "sum(rate(http_server_request_duration_seconds_count{service=\"gateway\"}[1m]))",
+          "refId": "A"
+        }
+      ],
+      "id": 4
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency p99 by service (click a dot to open the trace)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.25
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "histogram_quantile(0.99, sum by (service, le) (rate(http_server_request_duration_seconds_bucket[1m])))",
+          "legendFormat": "{{service}} p99",
+          "refId": "A",
+          "exemplar": true
+        }
+      ],
+      "id": 5
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency p50 / p95 / p99 \u2014 gateway",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(http_server_request_duration_seconds_bucket{service=\"gateway\"}[1m])))",
+          "legendFormat": "p50",
+          "refId": "A",
+          "exemplar": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{service=\"gateway\"}[1m])))",
+          "legendFormat": "p95",
+          "refId": "B",
+          "exemplar": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_request_duration_seconds_bucket{service=\"gateway\"}[1m])))",
+          "legendFormat": "p99",
+          "refId": "C",
+          "exemplar": false
+        }
+      ],
+      "id": 6
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests per second by service and status",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "sum by (service, code) (rate(http_server_request_duration_seconds_count[1m]))",
+          "legendFormat": "{{service}} {{code}}",
+          "refId": "A",
+          "exemplar": false
+        }
+      ],
+      "id": 7
+    },
+    {
+      "type": "timeseries",
+      "title": "Error rate (5xx) by service",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.005
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "sum by (service) (rate(http_server_request_duration_seconds_count{code=~\"5..\"}[1m])) / sum by (service) (rate(http_server_request_duration_seconds_count[1m]))",
+          "legendFormat": "{{service}}",
+          "refId": "A",
+          "exemplar": false
+        }
+      ],
+      "id": 8
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU (cores) by service",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "sum by (service) (label_replace(rate(process_cpu_seconds_total[1m]), \"service\", \"$1\", \"instance\", \"([a-z]+).*\"))",
+          "legendFormat": "{{service}}",
+          "refId": "A",
+          "exemplar": false
+        }
+      ],
+      "id": 9
+    },
+    {
+      "type": "timeseries",
+      "title": "Resident memory by service",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 20,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "sum by (service) (label_replace(process_resident_memory_bytes, \"service\", \"$1\", \"instance\", \"([a-z]+).*\"))",
+          "legendFormat": "{{service}}",
+          "refId": "A",
+          "exemplar": false
+        }
+      ],
+      "id": 10
+    },
+    {
+      "type": "timeseries",
+      "title": "Goroutines / in-flight requests",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 20,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "sum by (service) (http_server_requests_in_flight)",
+          "legendFormat": "{{service}} in-flight",
+          "refId": "A",
+          "exemplar": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          },
+          "expr": "label_replace(go_goroutines, \"service\", \"$1\", \"instance\", \"([a-z]+).*\")",
+          "legendFormat": "{{service}} goroutines",
+          "refId": "B",
+          "exemplar": false
+        }
+      ],
+      "id": 11
+    }
+  ]
+}

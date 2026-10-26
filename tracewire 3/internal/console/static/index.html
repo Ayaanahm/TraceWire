@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tracewire console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #E6EBEF;
+  --sheet: #F4F6F8;
+  --ink: #14263A;
+  --ink-2: #3E5266;
+  --steel: #7D8FA1;
+  --grid: #CDD6DE;
+  --amber: #D99A00;
+  --red: #C2352B;
+  --ok: #2F6E4F;
+  --sans: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --narrow: "Barlow Condensed", "Arial Narrow", var(--sans);
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body {
+  margin: 0; color: var(--ink); font: 400 16px/1.5 var(--sans);
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 24px 24px,
+    var(--paper);
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding: 32px 24px 64px; }
+
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 40px; margin-bottom: 28px; }
+h1 { font: 600 44px/1 var(--narrow); letter-spacing: -0.01em; margin: 0 0 6px; }
+.lede { margin: 0; color: var(--ink-2); max-width: 46ch; }
+.readout { display: flex; gap: 36px; }
+.readout div { display: grid; }
+.readout b { font: 600 34px/1 var(--narrow); font-variant-numeric: tabular-nums; }
+.readout b small { font-size: 18px; font-weight: 500; margin-left: 2px; color: var(--ink-2); }
+.readout span { font-size: 14px; color: var(--ink-2); }
+.readout .bad b { color: var(--red); }
+.readout .warn b { color: var(--amber); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; }
+.sheet { background: var(--sheet); border: 1px solid var(--grid); border-radius: 6px; }
+
+/* the schematic */
+.path { grid-column: 1 / -1; padding: 8px 8px 0; }
+.path > svg { display: block; width: 100%; height: auto; }
+.wire { stroke: var(--steel); stroke-width: 3; fill: none; transition: stroke .4s; }
+.wire.slow { stroke: var(--amber); }
+.node rect { fill: var(--sheet); stroke: var(--ink); stroke-width: 2; }
+.node.slow rect { stroke: var(--amber); stroke-width: 3; }
+.node .name { font: 600 22px var(--narrow); fill: var(--ink); }
+.node .role { font: 400 13px var(--sans); fill: var(--ink-2); }
+.node .ms { font: 600 26px var(--narrow); fill: var(--ink); font-variant-numeric: tabular-nums; }
+.node .msl { font: 400 12px var(--sans); fill: var(--ink-2); }
+.client circle { fill: var(--ink); }
+.client text { font: 500 14px var(--sans); fill: var(--ink-2); }
+.packet { fill: var(--ink); }
+.packet.err { fill: var(--red); }
+.caption { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 4px 16px 14px; font-size: 14px; color: var(--ink-2); }
+.key { display: inline-flex; align-items: center; gap: 8px; }
+.key i { width: 22px; height: 3px; background: var(--steel); display: inline-block; }
+.key i.a { background: var(--amber); }
+
+/* chart */
+.chart { padding: 18px 18px 12px; }
+.left { display: grid; gap: 20px; align-content: start; min-width: 0; }
+.fall { padding: 18px; }
+.fall-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; }
+.fall h2 { font: 600 20px/1.2 var(--narrow); margin: 0 0 2px; }
+.fall-head a { color: var(--ink); font-weight: 500; font-size: 15px; }
+.fall p.sub { margin: 0 0 14px; font-size: 14px; color: var(--ink-2); }
+.bars { display: grid; gap: 8px; position: relative; }
+.bar { display: grid; grid-template-columns: 82px 1fr 72px; align-items: center; gap: 12px; }
+.who { font: 600 17px var(--narrow); }
+.track { position: relative; height: 22px; border-left: 1.5px solid var(--ink); }
+.track i { position: absolute; top: 3px; bottom: 3px; left: 0; width: 0; background: var(--steel); border-radius: 2px; transition: left .5s, width .5s, background .3s; }
+.track i.slow { background: var(--amber); background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(20,38,58,.22) 6px 8px); }
+.track i.failed { background: var(--red); }
+.t { font: 600 18px var(--narrow); font-variant-numeric: tabular-nums; text-align: right; }
+.scale { position: absolute; left: 94px; right: 84px; top: -6px; bottom: -6px; pointer-events: none; }
+.slo { position: absolute; top: 0; bottom: 0; border-left: 2px dashed var(--amber); }
+.slo em { position: absolute; bottom: -22px; left: -40px; width: 80px; text-align: center; font: 400 12px var(--sans); color: var(--ink-2); font-style: normal; }
+.bars { margin-bottom: 20px; }
+.node .flag { font: 600 13px var(--sans); fill: var(--amber); }
+.chart h2, .controls h2 { font: 600 20px/1.2 var(--narrow); margin: 0 0 2px; }
+.chart p.sub { margin: 0 0 10px; font-size: 14px; color: var(--ink-2); }
+canvas { width: 100%; height: 260px; display: block; }
+
+/* controls */
+.controls { padding: 18px; display: grid; gap: 22px; align-content: start; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; }
+legend { font: 600 20px/1.2 var(--narrow); padding: 0; margin-bottom: 4px; }
+.hint { font-size: 14px; color: var(--ink-2); margin: -4px 0 0; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; }
+.seg button { font: 500 15px var(--sans); background: transparent; color: var(--ink); border: 0; border-left: 1.5px solid var(--ink); padding: 8px 0; cursor: pointer; }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+label.range { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; font-size: 15px; }
+label.range output { font: 600 18px var(--narrow); font-variant-numeric: tabular-nums; }
+input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--ink); }
+button.plain { font: 500 15px var(--sans); color: var(--ink); background: transparent; border: 1.5px solid var(--ink); border-radius: 4px; padding: 8px 14px; cursor: pointer; justify-self: start; }
+button.solid { font: 600 15px var(--sans); color: var(--sheet); background: var(--ink); border: 1.5px solid var(--ink); border-radius: 4px; padding: 9px 16px; cursor: pointer; }
+.order { display: grid; grid-template-columns: 1fr 64px auto; gap: 8px; }
+select, input[type=number] { font: 400 15px var(--sans); color: var(--ink); background: var(--sheet); border: 1.5px solid var(--steel); border-radius: 4px; padding: 7px 8px; min-width: 0; }
+.log { list-style: none; margin: 0; padding: 0; font-size: 14px; display: grid; gap: 6px; max-height: 168px; overflow: auto; }
+.log li { display: grid; grid-template-columns: 44px 1fr; gap: 8px; }
+.log .code { font: 600 15px var(--narrow); }
+.log .code.e { color: var(--red); } .log .code.w { color: var(--amber); } .log .code.k { color: var(--ok); }
+.log .detail { color: var(--ink-2); }
+.off { font-size: 14px; color: var(--ink-2); border-left: 3px solid var(--amber); padding-left: 10px; margin: 0; }
+:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+
+footer { margin-top: 24px; font-size: 14px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 6px 24px; }
+footer a { color: var(--ink); }
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+  h1 { font-size: 36px; }
+  .readout { gap: 24px; }
+  .readout b { font-size: 28px; }
+}
+.hops { display: none; }
+@media (max-width: 560px) {
+  .wrap { padding: 20px 16px 48px; }
+  .path { padding: 16px 16px 0; }
+  .path > svg { display: none; }
+  .hops { display: grid; list-style: none; margin: 0 0 8px; padding: 0 0 0 14px; border-left: 3px solid var(--steel); gap: 10px; }
+  .hops li { display: flex; justify-content: space-between; align-items: baseline; border: 1.5px solid var(--ink); border-radius: 6px; padding: 10px 14px; background: var(--sheet); }
+  .hops li span { font: 600 20px var(--narrow); }
+  .hops li b { font: 600 22px var(--narrow); font-variant-numeric: tabular-nums; }
+  .hops li.slow { border-color: var(--amber); border-width: 3px; }
+  .caption span:first-child { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>tracewire</h1>
+      <p class="lede">Every order travels gateway, orders, inventory. Send traffic, slow a service down, and watch where the time goes.</p>
+    </div>
+    <div class="readout" aria-live="polite">
+      <div id="r-p99"><b>–</b><span>p99, last 10 s</span></div>
+      <div id="r-rps"><b>–</b><span>orders per second</span></div>
+      <div id="r-err"><b>–</b><span>failed</span></div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="sheet path" aria-label="Request path">
+      <svg id="schematic" viewBox="0 0 1180 200" role="img" aria-label="Request path from client through gateway and orders to inventory">
+        <g class="client"><circle cx="40" cy="100" r="9"/><text x="40" y="138" text-anchor="middle">client</text></g>
+        <path id="w0" class="wire" d="M52 100 H 170"/>
+        <path id="w1" class="wire" d="M410 100 H 520"/>
+        <path id="w2" class="wire" d="M760 100 H 870"/>
+        <g id="packets"></g>
+        <g class="node" id="n-gateway" transform="translate(170 40)">
+          <rect width="240" height="120" rx="6"/>
+          <text class="name" x="18" y="34">gateway</text>
+          <text class="role" x="18" y="54">public edge, forwards orders</text>
+          <text class="ms" x="18" y="98">–</text><text class="msl" x="110" y="98">own p99</text><text class="flag" x="222" y="34" text-anchor="end"></text>
+        </g>
+        <g class="node" id="n-orders" transform="translate(520 40)">
+          <rect width="240" height="120" rx="6"/>
+          <text class="name" x="18" y="34">orders</text>
+          <text class="role" x="18" y="54">validates, reserves stock</text>
+          <text class="ms" x="18" y="98">–</text><text class="msl" x="110" y="98">own p99</text><text class="flag" x="222" y="34" text-anchor="end"></text>
+        </g>
+        <g class="node" id="n-inventory" transform="translate(870 40)">
+          <rect width="240" height="120" rx="6"/>
+          <text class="name" x="18" y="34">inventory</text>
+          <text class="role" x="18" y="54">owns stock levels</text>
+          <text class="ms" x="18" y="98">–</text><text class="msl" x="110" y="98">own p99</text><text class="flag" x="222" y="34" text-anchor="end"></text>
+        </g>
+      </svg>
+      <ol class="hops" aria-label="Time spent in each service">
+        <li id="h-gateway"><span>gateway</span><b>–</b></li>
+        <li id="h-orders"><span>orders</span><b>–</b></li>
+        <li id="h-inventory"><span>inventory</span><b>–</b></li>
+      </ol>
+      <div class="caption">
+        <span>Dots are real requests, slowed down so you can follow them.</span>
+        <span class="key"><i></i>healthy</span>
+        <span class="key"><i class="a"></i>slower than 200 ms at p99</span>
+        <span class="key"><svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="#C2352B"/></svg>failed request</span>
+      </div>
+    </section>
+
+    <div class="left">
+    <section class="sheet chart" aria-labelledby="chart-h">
+      <h2 id="chart-h">Latency, last 60 seconds</h2>
+      <p class="sub">Dark line is p99, light line is median. The dashed line is the 250 ms target. Red marks are seconds with failures.</p>
+      <canvas id="chart" aria-label="Latency chart"></canvas>
+    </section>
+
+    <section class="sheet fall" aria-labelledby="fall-h">
+      <div class="fall-head">
+        <h2 id="fall-h">Slowest order in the last 10 seconds</h2>
+        <a id="fall-link" href="#" target="_blank" rel="noopener" hidden>Open this trace in Jaeger</a>
+      </div>
+      <p class="sub" id="fall-sub">Each bar is the time a service held the request. Bars nest because each service waits on the next one.</p>
+      <div class="bars" id="bars">
+        <div class="scale" aria-hidden="true"><span class="slo" id="slo-tick"><em>250 ms target</em></span></div>
+        <div class="bar"><span class="who">gateway</span><span class="track"><i id="b-gateway"></i></span><span class="t" id="t-gateway">–</span></div>
+        <div class="bar"><span class="who">orders</span><span class="track"><i id="b-orders"></i></span><span class="t" id="t-orders">–</span></div>
+        <div class="bar"><span class="who">inventory</span><span class="track"><i id="b-inventory"></i></span><span class="t" id="t-inventory">–</span></div>
+      </div>
+    </section>
+    </div>
+
+    <aside class="sheet controls">
+      <fieldset>
+        <legend>Traffic</legend>
+        <p class="hint">Orders per second sent by the gateway to itself.</p>
+        <div class="seg" role="group" aria-label="Traffic rate">
+          <button data-rps="0" aria-pressed="true">Off</button>
+          <button data-rps="20" aria-pressed="false">20</button>
+          <button data-rps="80" aria-pressed="false">80</button>
+          <button data-rps="150" aria-pressed="false">150</button>
+        </div>
+      </fieldset>
+
+      <fieldset id="faults">
+        <legend>Break inventory</legend>
+        <label class="range">Requests that stall <output id="o-slow">0%</output>
+          <input id="f-slow" type="range" min="0" max="50" step="1" value="0"></label>
+        <label class="range">Stall length <output id="o-delay">0 ms</output>
+          <input id="f-delay" type="range" min="0" max="600" step="10" value="0"></label>
+        <label class="range">Requests that fail <output id="o-err">0%</output>
+          <input id="f-err" type="range" min="0" max="20" step="1" value="0"></label>
+        <button class="plain" id="restore">Restore inventory</button>
+        <p class="off" id="faults-off" hidden>Fault controls are turned off on this deployment. Run it locally with <code>docker compose up</code> to use them.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Place one order</legend>
+        <form class="order" id="order">
+          <select id="sku" aria-label="Product">
+            <option value="sku-keyboard">Keyboard</option>
+            <option value="sku-mouse">Mouse</option>
+            <option value="sku-monitor">Monitor</option>
+            <option value="sku-limited">Limited edition (3 in stock)</option>
+          </select>
+          <input id="qty" type="number" min="1" max="1000" value="1" aria-label="Quantity">
+          <button class="solid" type="submit">Place order</button>
+        </form>
+        <ul class="log" id="log" aria-live="polite"></ul>
+      </fieldset>
+    </aside>
+  </div>
+
+  <footer>
+    <span>Grafana <a href="http://localhost:3000/d/tracewire-overview">localhost:3000</a></span>
+    <span>Traces <a href="http://localhost:16686">localhost:16686</a></span>
+    <span>Source <a href="https://github.com/Ayaanahm/tracewire">github.com/Ayaanahm/tracewire</a></span>
+  </footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const SLO = 250, SLOW_HOP = 200;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let stats = null, baseline = null;
+
+const fmt = ms => ms >= 100 ? Math.round(ms) : ms >= 10 ? ms.toFixed(0) : ms.toFixed(1);
+
+async function poll() {
+  try {
+    const r = await fetch('/console/api/stats');
+    stats = await r.json();
+    render();
+  } catch { /* gateway restarting; try again next tick */ }
+}
+
+function render() {
+  const s = stats, total = s.hops.total;
+  const active = s.rps > 0;
+  const p99 = $('#r-p99'), rps = $('#r-rps'), err = $('#r-err');
+  p99.querySelector('b').innerHTML = active ? `${fmt(total.p99)}<small>ms</small>` : '–';
+  p99.className = active && total.p99 > SLO ? 'bad' : '';
+  rps.querySelector('b').textContent = active ? Math.round(s.rps) : '0';
+  err.querySelector('b').textContent = active ? (s.error_rate * 100).toFixed(1) + '%' : '–';
+  err.className = s.error_rate > 0.005 ? 'bad' : '';
+
+  for (const [name, wire] of [['gateway', null], ['orders', '#w1'], ['inventory', '#w2']]) {
+    const hop = s.hops[name], node = $('#n-' + name);
+    node.querySelector('.ms').textContent = active ? fmt(hop.p99) + ' ms' : '–';
+    node.classList.toggle('slow', active && hop.p99 > SLOW_HOP);
+    node.querySelector('.flag').textContent = active && hop.p99 > SLOW_HOP ? 'slow' : '';
+    const row = $('#h-' + name);
+    row.querySelector('b').textContent = active ? fmt(hop.p99) + ' ms p99' : '–';
+    row.classList.toggle('slow', active && hop.p99 > SLOW_HOP);
+    if (wire) $(wire).classList.toggle('slow', active && hop.p99 > SLOW_HOP);
+  }
+
+  document.querySelectorAll('.seg button').forEach(b =>
+    b.setAttribute('aria-pressed', String(+b.dataset.rps === s.traffic_rps)));
+  if (!s.controls) {
+    $('#faults-off').hidden = false;
+    document.querySelectorAll('#faults input, #restore').forEach(el => el.disabled = true);
+  }
+  drawChart();
+  drawFall();
+}
+
+function drawFall() {
+  const w = stats.slowest, link = $('#fall-link');
+  if (!w) {
+    ['gateway', 'orders', 'inventory'].forEach(n => { $('#b-' + n).style.width = 0; $('#t-' + n).textContent = '–'; });
+    $('#slo-tick').style.left = '0'; $('#slo-tick').hidden = true; link.hidden = true;
+    return;
+  }
+  const scale = Math.max(400, w.total * 1.1), pctOf = v => (100 * v / scale) + '%';
+  // Nesting: gateway holds the whole request; orders starts after gateway's
+  // own share; inventory starts after orders' own share. Own time is split
+  // evenly before and after the downstream call, which is an approximation.
+  const g0 = w.gateway / 2, o0 = g0 + w.orders / 2;
+  const spans = { gateway: [0, w.total], orders: [g0, w.orders + w.inventory], inventory: [o0, w.inventory] };
+  for (const [n, [start, len]] of Object.entries(spans)) {
+    const el = $('#b-' + n);
+    el.style.left = pctOf(start); el.style.width = pctOf(len);
+    el.className = w.failed && n === 'inventory' ? 'failed' : stats.hops[n].p99 > SLOW_HOP || (n === 'gateway' && w.total > SLO) ? 'slow' : '';
+    $('#t-' + n).textContent = fmt(len) + ' ms';
+  }
+  $('#slo-tick').hidden = false; $('#slo-tick').style.left = pctOf(SLO);
+  if (stats.jaeger_url && w.trace_id) { link.hidden = false; link.href = `${stats.jaeger_url}/trace/${w.trace_id}`; }
+  else link.hidden = true;
+}
+
+/* strip chart */
+const cv = $('#chart'), ctx = cv.getContext('2d');
+function drawChart() {
+  const dpr = devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const css = getComputedStyle(document.documentElement);
+  const c = k => css.getPropertyValue(k).trim();
+  const pts = stats.series.slice(0, -1); // current second is still filling
+  const max = Math.max(400, ...pts.map(p => p.p99)) * 1.08;
+  const L = 44, R = 8, T = 8, B = 26, W = w - L - R, H = h - T - B;
+  const x = i => L + (i / (pts.length - 1)) * W;
+  const y = v => T + H - (v / max) * H;
+
+  ctx.font = `13px ${c('--sans')}`; ctx.fillStyle = c('--ink-2'); ctx.strokeStyle = c('--grid'); ctx.lineWidth = 1;
+  const step = max > 800 ? 200 : 100;
+  for (let v = 0; v < max; v += step) {
+    ctx.beginPath(); ctx.moveTo(L, y(v) + .5); ctx.lineTo(w - R, y(v) + .5); ctx.stroke();
+    ctx.textAlign = 'right'; ctx.fillText(v + (v === 0 ? '' : ''), L - 8, y(v) + 4);
+  }
+  ctx.textAlign = 'left'; ctx.fillText('ms', 4, T + 10);
+  ctx.textAlign = 'center';
+  [['60 s ago', 0, 'left'], ['30 s', .5, 'center'], ['now', 1, 'right']].forEach(([t, f, a]) => { ctx.textAlign = a; ctx.fillText(t, L + f * W, h - 6); });
+
+  ctx.setLineDash([6, 5]); ctx.strokeStyle = c('--amber'); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(L, y(SLO)); ctx.lineTo(w - R, y(SLO)); ctx.stroke(); ctx.setLineDash([]);
+
+  ctx.fillStyle = c('--red');
+  pts.forEach((p, i) => { if (p.errors) { const bh = Math.min(H * .4, 6 + p.errors * 3); ctx.fillRect(x(i) - 2, T + H - bh, 4, bh); } });
+
+  const line = (key, color, width) => {
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = 'round'; ctx.beginPath();
+    let pen = false;
+    pts.forEach((p, i) => { if (!p.count) { pen = false; return; } pen ? ctx.lineTo(x(i), y(p[key])) : ctx.moveTo(x(i), y(p[key])); pen = true; });
+    ctx.stroke();
+  };
+  line('p50', c('--steel'), 2);
+  line('p99', c('--ink'), 2.5);
+
+  if (!pts.some(p => p.count)) {
+    ctx.fillStyle = c('--ink-2'); ctx.font = `15px ${c('--sans')}`;
+    ctx.fillText('No orders yet. Turn on traffic or place an order.', L + W / 2, T + H / 2);
+  }
+}
+addEventListener('resize', () => stats && drawChart());
+
+/* packets moving along the path */
+const SVGNS = 'http://www.w3.org/2000/svg', layer = $('#packets');
+const route = [[52, 170], [410, 520], [760, 870]];
+let carry = 0, last = performance.now();
+function spawn(err) {
+  const dot = document.createElementNS(SVGNS, 'circle');
+  dot.setAttribute('r', 5); dot.setAttribute('cy', 100);
+  dot.setAttribute('class', 'packet' + (err ? ' err' : ''));
+  layer.appendChild(dot);
+  const legs = 3, dur = 1400; // ms across the whole path
+  const t0 = performance.now();
+  (function step(now) {
+    const f = Math.max(0, (now - t0) / dur);
+    if (f >= 1) { dot.remove(); return; }
+    const leg = Math.min(legs - 1, Math.floor(f * legs)), lf = f * legs - leg;
+    const [a, b] = route[leg];
+    dot.setAttribute('cx', a + (b - a) * lf);
+    dot.style.opacity = leg === 2 && err && lf > .7 ? 1 - (lf - .7) / .3 : 1;
+    requestAnimationFrame(step);
+  })(t0);
+}
+function tick(now) {
+  if (stats && !reduced && document.visibilityState === 'visible') {
+    const visible = Math.min(stats.rps, 6); // cap: at high rates one dot stands for many requests
+    carry += visible * (now - last) / 1000;
+    while (carry >= 1) { carry--; spawn(Math.random() < stats.error_rate); }
+  }
+  last = now;
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* controls */
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', async () => {
+  await fetch('/console/api/traffic', { method: 'PUT', body: JSON.stringify({ rps: +b.dataset.rps }) });
+  poll();
+}));
+
+const sliders = { slow: $('#f-slow'), delay: $('#f-delay'), err: $('#f-err') };
+function showSliders() {
+  $('#o-slow').textContent = sliders.slow.value + '%';
+  $('#o-delay').textContent = sliders.delay.value + ' ms';
+  $('#o-err').textContent = sliders.err.value + '%';
+}
+let pending;
+function pushFaults() {
+  showSliders();
+  clearTimeout(pending);
+  pending = setTimeout(() => fetch('/console/api/faults', { method: 'PUT', body: JSON.stringify({
+    base_latency_ms: baseline?.base_latency_ms ?? 0,
+    slow_rate: sliders.slow.value / 100,
+    slow_latency_ms: +sliders.delay.value,
+    error_rate: sliders.err.value / 100,
+  }) }), 150);
+}
+Object.values(sliders).forEach(s => s.addEventListener('input', pushFaults));
+$('#restore').addEventListener('click', async () => {
+  const r = await fetch('/console/api/faults', { method: 'DELETE' });
+  if (r.ok) setSliders(await r.json());
+});
+function setSliders(cfg) {
+  baseline = cfg;
+  sliders.slow.value = Math.round(cfg.slow_rate * 100);
+  sliders.delay.value = cfg.slow_latency_ms;
+  sliders.err.value = Math.round(cfg.error_rate * 100);
+  showSliders();
+}
+fetch('/console/api/faults').then(r => r.ok ? r.json() : null).then(cfg => cfg && setSliders(cfg));
+
+$('#order').addEventListener('submit', async e => {
+  e.preventDefault();
+  const started = performance.now();
+  let line;
+  try {
+    const r = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sku: $('#sku').value, qty: +$('#qty').value }) });
+    const body = await r.json();
+    const ms = Math.round(performance.now() - started);
+    const t = Object.fromEntries((r.headers.get('Server-Timing') || '').split(',').map(p => p.trim().split(';dur=')).filter(p => p.length === 2));
+    const split = t.inventory ? `, ${fmt(+t.inventory)} ms of it in inventory` : '';
+    const cls = r.ok ? 'k' : r.status >= 500 ? 'e' : 'w';
+    const what = r.ok ? `Order ${body.id} placed in ${ms} ms${split}` : `${body.error[0].toUpperCase() + body.error.slice(1)} (${ms} ms)`;
+    line = `<span class="code ${cls}">${r.status}</span><span class="detail"></span>`;
+    const li = document.createElement('li'); li.innerHTML = line; li.querySelector('.detail').textContent = what;
+    $('#log').prepend(li);
+  } catch {
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="code e">–</span><span class="detail">The gateway did not answer. Check that it is running.</span>';
+    $('#log').prepend(li);
+  }
+  poll();
+});
+
+poll();
+setInterval(poll, 1000);
+</script>
+</body>
+</html>

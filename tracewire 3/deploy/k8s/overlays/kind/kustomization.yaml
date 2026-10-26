@@ -1,0 +1,14 @@
+# Local images loaded with `kind load`; CI overlays set ghcr.io/<owner>/tracewire-*:<tag>.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: [../../base]
+images:
+  - { name: tracewire-gateway, newName: tracewire-gateway, newTag: v0.2.0 }
+  - { name: tracewire-orders, newName: tracewire-orders, newTag: v0.2.0 }
+  - { name: tracewire-inventory, newName: tracewire-inventory, newTag: v0.2.0 }
+patches:
+  - target: { kind: Deployment }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent

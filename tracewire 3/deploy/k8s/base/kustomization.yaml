@@ -1,0 +1,4 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: tracewire
+resources: [namespace.yaml, gateway.yaml, orders.yaml, inventory.yaml, servicemonitor.yaml, hpa.yaml]

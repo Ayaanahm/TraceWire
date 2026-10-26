@@ -1,0 +1,37 @@
+groups:
+  - name: tracewire-recording
+    rules:
+      - record: service_route:request_duration_seconds:p95_1m
+        expr: histogram_quantile(0.95, sum by (service, route, le) (rate(http_server_request_duration_seconds_bucket[1m])))
+      - record: service_route:request_duration_seconds:p99_1m
+        expr: histogram_quantile(0.99, sum by (service, route, le) (rate(http_server_request_duration_seconds_bucket[1m])))
+      - record: service:error_ratio_1m
+        expr: |
+          sum by (service) (rate(http_server_request_duration_seconds_count{code=~"5.."}[1m]))
+          / sum by (service) (rate(http_server_request_duration_seconds_count[1m]))
+  - name: tracewire-slo
+    rules:
+      # SLO: 99% of gateway requests under 250ms, 99.5% non-5xx.
+      - alert: GatewayLatencyP99High
+        expr: service_route:request_duration_seconds:p99_1m{service="gateway"} > 0.25
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: "gateway p99 {{ $value | humanizeDuration }} on {{ $labels.route }} (SLO 250ms)"
+      - alert: ErrorBudgetFastBurn
+        # 14.4x burn on a 0.5% budget over 5m and 1h windows (Google SRE workbook)
+        expr: |
+          (sum by (service) (rate(http_server_request_duration_seconds_count{code=~"5.."}[5m]))
+            / sum by (service) (rate(http_server_request_duration_seconds_count[5m]))) > (14.4 * 0.005)
+          and
+          (sum by (service) (rate(http_server_request_duration_seconds_count{code=~"5.."}[1h]))
+            / sum by (service) (rate(http_server_request_duration_seconds_count[1h]))) > (14.4 * 0.005)
+        labels: { severity: page }
+        annotations:
+          summary: "{{ $labels.service }} is burning its error budget 14x too fast"
+      - alert: ServiceDown
+        expr: up{job=~"tracewire|gateway|orders|inventory"} == 0
+        for: 30s
+        labels: { severity: page }
+        annotations:
+          summary: "{{ $labels.instance }} is not being scraped"

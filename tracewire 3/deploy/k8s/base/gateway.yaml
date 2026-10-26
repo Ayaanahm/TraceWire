@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  labels: { app.kubernetes.io/name: gateway, app.kubernetes.io/part-of: tracewire }
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels: { app.kubernetes.io/name: gateway }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: gateway, app.kubernetes.io/part-of: tracewire }
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: app
+          image: tracewire-gateway
+          ports: [{ name: http, containerPort: 8080 }]
+          env:
+            - { name: ADDR, value: ":8080" }
+            - { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://otel-collector.observability:4318" }
+            - { name: TRACE_SAMPLE_RATIO, value: "0.1" }
+            # Keep serving for this long after SIGTERM while readiness reports 503,
+            # so kube-proxy removes the pod from Service endpoints before the
+            # listener closes. See docs/technical-decisions.md.
+            - { name: SHUTDOWN_DRAIN_DELAY, value: "5s" }
+            - { name: ORDERS_URL, value: "http://orders:8081" }
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 2
+            failureThreshold: 1
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  labels: { app.kubernetes.io/name: gateway, app.kubernetes.io/part-of: tracewire }
+spec:
+  selector: { app.kubernetes.io/name: gateway }
+  ports: [{ name: http, port: 8080, targetPort: http }]
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: gateway }
